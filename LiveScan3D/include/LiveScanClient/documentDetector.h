@@ -25,6 +25,14 @@ provided color frame and ranks its detections based on their size and blur.
 #include <atomic>
 #include <onnxruntime_cxx_api.h>
 
+struct LetterboxInfo {
+    float scale = 1.0f;
+    int padW = 0;
+    int padH = 0;
+    int newW = 0;
+    int newH = 0;
+};
+
 class DocumentDetector
 {
 public:
@@ -38,7 +46,6 @@ public:
 
     bool Detect(
         const std::shared_ptr<ob::ColorFrame>& colorFrame,
-        cv::Mat depthFrame,
         cv::Mat& documentData,
         short& documentPictureWidth,
         short& documentPictureHeight,
@@ -47,9 +54,7 @@ public:
 
     void SetDetectionCallback(DetectionCallback callback);
     void SetLogger(std::function<void(const std::string&)> loggerFunc);
-
-    // Sets the ONNX model path. Call before the first detection (or right after construction).
-    void SetModelPath(const std::string& onnxPath);
+    void ResetModel(const std::string& onnxPath);
 
 private:
     std::mutex frameMutex;
@@ -73,6 +78,10 @@ private:
 
     DetectionCallback resultCallback;
 
+    // Inference parameters
+    const int kInputSize = 640;
+    const float confThreshold = 0.25f;
+    const float nmsThreshold = 0.45f;
 
     // YOLOv8-seg ONNX Runtime (CPU)
     std::string modelPath = "document_yolov8seg.onnx";
@@ -88,5 +97,23 @@ private:
     bool LoadModelIfNeeded();
     void StartDetectionThread();
     void StopDetectionThread();
+    cv::Mat PrepareInputImage(cv::Mat& originalImage, LetterboxInfo& letterboxInfo);
+    bool CreateInputTensor(
+        const cv::Mat& inputImage,
+        std::vector<float>& inputTensor,
+        Ort::Value& inputOrt);
+    bool RunInference(const Ort::Value& input, std::vector<Ort::Value>& outputs);
+    bool DecodeDetections(
+        const std::vector<Ort::Value>& outputs,
+        const LetterboxInfo& lb,
+        const cv::Mat& originalImage,
+        std::vector<cv::Rect>& boxes,
+        std::vector<float>& scores);
+    bool ExtractDocumentCrop(
+        const cv::Mat& originalImage,
+        const cv::Rect& box,
+        cv::Mat& documentData,
+        short& documentPictureWidth,
+        short& documentPictureHeight);
     std::function<void(const std::string&)> logFn;
 };

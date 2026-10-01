@@ -37,6 +37,16 @@ Kowalski, M.; Naruniec, J.; Daniluk, M.: "LiveScan3D: A Fast and Inexpensive
 #include <condition_variable>
 #include <functional>
 #include <voxelGridFilter.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/surface/gp3.h>
+#include <pcl/surface/poisson.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/search/kdtree.h>
+#include <json.hpp>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <unordered_map>
 
 class LiveScanClient
 {
@@ -128,12 +138,26 @@ private:
     std::vector<Point3f> rawBufferVertices;
     std::vector<RGB> rawBufferColors;
 
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
+    pcl::PointCloud<pcl::Normal>::Ptr normals;
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloudWithNormals;
+    pcl::search::KdTree<pcl::PointNormal>::Ptr tree;
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr normalTree;
+    pcl::PolygonMesh mesh;
+
+    pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
+    pcl::GreedyProjectionTriangulation<pcl::PointNormal> gp3;
+
+    std::vector<Point3f> localVertices;
+    std::vector<RGB> localColors;
+
     Point3f* cameraSpaceCoordinates;
 
     std::ofstream logFile;
 
     void UpdateFrame();
-    //void ProcessFrame();
+    void ApplyVoxelDownsampling(std::vector<Point3f> &goodVertices, std::vector<RGB>&goodColorPoints);
+    bool ConstructMesh(std::vector<Point3f> &goodVertices, std::vector<int> &tempMeshIndices);
     void ProcessDocument();
     float ComputeImageDifference(cv::Mat& newDocumentData);
     void SendSerialNumber();
@@ -149,4 +173,5 @@ private:
     void SetupLogging(int clientIndex);
     void ProcessingLoop();
     void Log(const std::string& message);
+    void OutputFrameToJson(std::vector<Point3s> vertices, std::vector<RGB> colors, std::vector<int> meshIndices);
 };

@@ -86,15 +86,11 @@ static inline bool IsFiniteFloat(float v)
 
 static inline bool IsValidDepthPoint(const Point3f& p)
 {
-	// Best-effort assumption:
-	// - invalid if Z <= 0
-	// - also reject NaN/Inf
 	return (p.Z > 0.0f) && IsFiniteFloat(p.X) && IsFiniteFloat(p.Y) && IsFiniteFloat(p.Z);
 }
 
-static float MedianOf(std::vector<float>& v)
+static float Median(std::vector<float>& v)
 {
-	// v must be non-empty
 	size_t mid = v.size() / 2;
 	std::nth_element(v.begin(), v.begin() + mid, v.end());
 	float med = v[mid];
@@ -107,7 +103,7 @@ static float MedianOf(std::vector<float>& v)
 	return med;
 }
 
-static Point3f MedianPoint3f(std::vector<Point3f>& pts)
+static Point3f Median(std::vector<Point3f>& pts)
 {
 	std::vector<float> xs, ys, zs;
 	xs.reserve(pts.size());
@@ -122,12 +118,14 @@ static Point3f MedianPoint3f(std::vector<Point3f>& pts)
 	}
 
 	Point3f out;
-	out.X = MedianOf(xs);
-	out.Y = MedianOf(ys);
-	out.Z = MedianOf(zs);
+	out.X = Median(xs);
+	out.Y = Median(ys);
+	out.Z = Median(zs);
 	return out;
 }
 
+// Samples a small image patch around (x, y) and returns a robust 3D point.
+// Uses all valid depth samples in the patch and takes their median.
 static bool SampleRobustPointFromPatch(
 	const Point3f* depthFrame,
 	int frameWidth,
@@ -138,9 +136,11 @@ static bool SampleRobustPointFromPatch(
 	int minValidSamples,      // minimum valid points needed
 	Point3f& outPoint)
 {
+	// Convert the sub-pixel corner position to the nearest pixel
 	int cx = static_cast<int>(std::lround(x));
 	int cy = static_cast<int>(std::lround(y));
 
+	// Define the patch bounds and clamp them to the image boundaries
 	int x0 = std::max(0, cx - radius);
 	int x1 = std::min(frameWidth - 1, cx + radius);
 	int y0 = std::max(0, cy - radius);
@@ -158,7 +158,10 @@ static bool SampleRobustPointFromPatch(
 		int row = yy * frameWidth;
 		for (int xx = x0; xx <= x1; xx++)
 		{
+			// Convert the 2D pixel coordinate into a 1D depth-frame index
 			const Point3f p = depthFrame[row + xx];
+
+			// Ignore missing/invalid depth measurements
 			if (!IsValidDepthPoint(p))
 				continue;
 
@@ -168,12 +171,13 @@ static bool SampleRobustPointFromPatch(
 		}
 	}
 
+	// If too few valid measurements remain, the result is not considered reliable
 	if (static_cast<int>(zs.size()) < minValidSamples)
 		return false;
 
-	outPoint.X = MedianOf(xs);
-	outPoint.Y = MedianOf(ys);
-	outPoint.Z = MedianOf(zs);
+	outPoint.X = Median(xs);
+	outPoint.Y = Median(ys);
+	outPoint.Z = Median(zs);
 	return true;
 }
 
@@ -258,101 +262,31 @@ static void ComputeRobustReferenceCorners(
 		for (int s = 0; s < S; s++)
 			cornerPts.push_back(samples[s][c]);
 
-		refCorners[c] = MedianPoint3f(cornerPts);
+		refCorners[c] = Median(cornerPts);
 	}
 }
 
-struct SampleScore
-{
-	int idx;
-	float err;
-};
-
-static void ScoreSamplesAgainstReference(
+static void AverageSamples(
 	const std::vector<std::vector<Point3f>>& samples,
-	const std::vector<Point3f>& refCorners,
-	std::vector<SampleScore>& scores)
-{
-	scores.clear();
-	scores.reserve(samples.size());
-
-	for (int s = 0; s < static_cast<int>(samples.size()); s++)
-	{
-		float err = 0.0f;
-		for (int c = 0; c < static_cast<int>(refCorners.size()); c++)
-			err += DistSq3(samples[s][c], refCorners[c]);
-
-		scores.push_back({ s, err });
-	}
-
-	std::sort(scores.begin(), scores.end(),
-		[](const SampleScore& a, const SampleScore& b) { return a.err < b.err; });
-}
-
-static int ChooseKeepCount(
-	const std::vector<SampleScore>& scores,
-	int minKeep,
-	int maxKeep)
-{
-	if (scores.empty())
-		return 0;
-
-	std::vector<float> errs;
-	errs.reserve(scores.size());
-	for (size_t i = 0; i < scores.size(); i++)
-		errs.push_back(scores[i].err);
-
-	float medianErr = MedianOf(errs);
-
-	// If the median is almost zero, keep up to maxKeep best samples
-	if (medianErr <= 1e-9f)
-		return std::min(static_cast<int>(scores.size()), maxKeep);
-
-	// Adaptive threshold: keep all samples not too far from the median.
-	const float threshold = 2.5f * medianErr;
-
-	int keep = 0;
-	for (size_t i = 0; i < scores.size(); i++)
-	{
-		if (scores[i].err <= threshold)
-			keep++;
-		else
-			break;
-	}
-
-	if (keep < minKeep)
-		keep = std::min(minKeep, static_cast<int>(scores.size()));
-
-	if (keep > maxKeep)
-		keep = maxKeep;
-
-	return keep;
-}
-
-static void AverageBestSamples(
-	const std::vector<std::vector<Point3f>>& samples,
-	const std::vector<SampleScore>& scores,
-	int keepCount,
 	std::vector<Point3f>& outAverage)
 {
-	if (samples.empty() || keepCount <= 0)
+	if (samples.empty())
 		return;
 
 	const int C = static_cast<int>(samples[0].size());
 	outAverage.assign(C, Point3f());
 
-	for (int k = 0; k < keepCount; k++)
+	for (const auto& sample : samples)
 	{
-		const int s = scores[k].idx;
 		for (int c = 0; c < C; c++)
 		{
-			outAverage[c].X += samples[s][c].X;
-			outAverage[c].Y += samples[s][c].Y;
-			outAverage[c].Z += samples[s][c].Z;
+			outAverage[c].X += sample[c].X;
+			outAverage[c].Y += sample[c].Y;
+			outAverage[c].Z += sample[c].Z;
 		}
 	}
 
-	const float invKeep = 1.0f / static_cast<float>(keepCount);
+	const float invKeep = 1.0f / static_cast<float>(samples.size());
 	for (int c = 0; c < C; c++)
 	{
 		outAverage[c].X *= invKeep;
@@ -416,46 +350,17 @@ bool Calibration::Calibrate(RGB* colorFrame, Point3f* depthFrame, int frameWidth
 	if (!PassMarkerSampleGates(marker, marker3D))
 		return false;
 
-	// -------------------------------------------------------------------------
-	// Best-choice strategy:
-	// gather MORE successful samples than the bare minimum, then keep only
-	// the strongest inliers instead of finalizing as soon as NumRequiredSamples
-	// is reached.
-	// -------------------------------------------------------------------------
 	markerSamplePositions.push_back(marker3D);
 	numSamples = static_cast<int>(markerSamplePositions.size());
 
-	// Collect extra samples for robustness.
-	const int desiredRobustSamples = std::max(NumRequiredSamples, 12);
-
-	if (numSamples < desiredRobustSamples)
+	if (numSamples < NumRequiredSamples)
 		return false;
 
-	// Build a robust reference from all successful samples.
-	std::vector<Point3f> refCorners;
-	ComputeRobustReferenceCorners(markerSamplePositions, refCorners);
-
-	// Score every sample by distance to the robust reference.
-	std::vector<SampleScore> scores;
-	ScoreSamplesAgainstReference(markerSamplePositions, refCorners, scores);
-
-	// Keep a strong inlier subset.
-	const int minKeep = std::max(3, NumRequiredSamples);
-	const int maxKeep = static_cast<int>(markerSamplePositions.size());
-	const int keepCount = ChooseKeepCount(scores, minKeep, maxKeep);
-
-	if (keepCount < 3)
-	{
-		markerSamplePositions.clear();
-		numSamples = 0;
-		return false;
-	}
-
-	// Average only the best inlier samples.
+	// Average samples
 	std::vector<Point3f> averagedMarker3D;
-	AverageBestSamples(markerSamplePositions, scores, keepCount, averagedMarker3D);
+	AverageSamples(markerSamplePositions, averagedMarker3D);
 
-	// Apply Procrustes using the robust average marker geometry.
+	// Apply Procrustes using the robust average marker geometry
 	Procrustes(marker, averagedMarker3D, worldT, worldR);
 
 	vector<vector<float>> Rcopy = worldR;
