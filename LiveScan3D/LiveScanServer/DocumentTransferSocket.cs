@@ -29,6 +29,63 @@ namespace LiveScanServer
     {
         public DocumentTransferSocket(TcpClient clientSocket) : base(clientSocket) { }
 
+        // Not currently used
+        public static byte[] EncodeToJpeg(byte[] rawBgr, int width, int height, int quality = 90)
+        {
+            if (rawBgr == null || rawBgr.Length != width * height * 3 || width <= 0 || height <= 0)
+            {
+                // Invalid input for JPEG encoding
+                return null;
+            }
+
+            // Create Bitmap
+            using (Bitmap bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
+            {
+                var rect = new Rectangle(0, 0, width, height);
+                var data = bmp.LockBits(rect, ImageLockMode.WriteOnly, bmp.PixelFormat);
+
+                try
+                {
+                    // Copy raw pixels into Bitmap
+                    int srcStride = width * 3;
+                    int dstStride = Math.Abs(data.Stride);
+
+                    unsafe
+                    {
+                        byte* dstRow = (byte*)data.Scan0;
+                        fixed (byte* pSrc = rawBgr)
+                        {
+                            byte* srcRow = pSrc;
+                            for (int y = 0; y < height; y++)
+                            {
+                                Buffer.MemoryCopy(srcRow, dstRow, dstStride, srcStride);
+                                srcRow += srcStride;
+                                dstRow += data.Stride; // includes padding
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    // Unlock Bitmap bits
+                    bmp.UnlockBits(data);
+                }
+
+                // Save Bitmap as JPEG
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    var encoder = ImageCodecInfo.GetImageEncoders().First(e => e.FormatID == ImageFormat.Jpeg.Guid);
+                    using (EncoderParameters eps = new EncoderParameters(1))
+                    {
+                        eps.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)quality);
+                        bmp.Save(ms, encoder, eps);
+                    }
+
+                    return ms.ToArray();
+                }
+            }
+        }
+
         public void SendDocument(List<byte> data, short width, short height)
         {
             try
@@ -56,63 +113,5 @@ namespace LiveScanServer
             {
             }
         }
-
-        /*
-                public static byte[] EncodeToJpeg(byte[] rawBgr, int width, int height, int quality = 90)
-                {
-                    if (rawBgr == null || rawBgr.Length != width * height * 3 || width <= 0 || height <= 0)
-                    {
-                        // Invalid input for JPEG encoding
-                        return null;
-                    }
-
-                    // Create Bitmap
-                    using (Bitmap bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb))
-                    {
-                        var rect = new Rectangle(0, 0, width, height);
-                        var data = bmp.LockBits(rect, ImageLockMode.WriteOnly, bmp.PixelFormat);
-
-                        try
-                        {
-                            // Copy raw pixels into Bitmap
-                            int srcStride = width * 3;
-                            int dstStride = Math.Abs(data.Stride);
-
-                            unsafe
-                            {
-                                byte* dstRow = (byte*)data.Scan0;
-                                fixed (byte* pSrc = rawBgr)
-                                {
-                                    byte* srcRow = pSrc;
-                                    for (int y = 0; y < height; y++)
-                                    {
-                                        Buffer.MemoryCopy(srcRow, dstRow, dstStride, srcStride);
-                                        srcRow += srcStride;
-                                        dstRow += data.Stride; // includes padding
-                                    }
-                                }
-                            }
-                        }
-                        finally
-                        {
-                            // Unlock Bitmap bits
-                            bmp.UnlockBits(data);
-                        }
-
-                        // Save Bitmap as JPEG
-                        using (MemoryStream ms = new MemoryStream())
-                        {
-                            var encoder = ImageCodecInfo.GetImageEncoders().First(e => e.FormatID == ImageFormat.Jpeg.Guid);
-                            using (EncoderParameters eps = new EncoderParameters(1))
-                            {
-                                eps.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)quality);
-                                bmp.Save(ms, encoder, eps);
-                            }
-
-                            return ms.ToArray();
-                        }
-                    }
-                }
-        */
     }
 }

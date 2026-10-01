@@ -478,48 +478,42 @@ namespace LiveScanServer
 
             perCamIndices.Clear();
 
-            // --- 1) Take a SNAPSHOT of the client list under the lock ---
-            List<CameraClient> clientsSnapshot;
             lock (clientLock)
             {
-                clientsSnapshot = new List<CameraClient>(liveScanClients);
-                Logger.Log($"[DEBUG] GetMeshIndices: snapshot contains {clientsSnapshot.Count} clients.");
-
-                // Reset mesh flags and send requests on the snapshot
-                foreach (var client in clientsSnapshot)
+                // Reset mesh flags and send requests
+                foreach (var client in liveScanClients)
                 {
                     client.IsLatestMeshReceived = false;
                 }
 
-                for (int i = 0; i < clientsSnapshot.Count; i++)
+                for (int i = 0; i < liveScanClients.Count; i++)
                 {
-                    var client = clientsSnapshot[i];
+                    var client = liveScanClients[i];
                     Logger.Log($"Requesting latest mesh from client #{i}");
                     client.RequestLatestMesh();
                 }
             }
 
-            // --- 2) Wait for responses, with timeout, using the snapshot ---
+            // Wait for responses with timeout
+            bool allGathered = false;
             var sw = System.Diagnostics.Stopwatch.StartNew();
             const int TIMEOUT_MS = 50;
 
-            while (true)
+            while (!allGathered)
             {
-                bool allReady = true;
-
                 lock (clientLock)
                 {
-                    foreach (var client in clientsSnapshot)
+                    foreach (var client in liveScanClients)
                     {
                         if (!client.IsLatestMeshReceived)
                         {
-                            allReady = false;
+                            allGathered = false;
                             break;
                         }
                     }
                 }
 
-                if (allReady)
+                if (allGathered)
                     break;
 
                 if (sw.ElapsedMilliseconds > TIMEOUT_MS)
@@ -531,10 +525,10 @@ namespace LiveScanServer
                 Thread.Sleep(1);
             }
 
-            // --- 3) Copy meshes out, again iterating over the snapshot ---
+            // Copy meshes out
             lock (clientLock)
             {
-                foreach (var client in clientsSnapshot)
+                foreach (var client in liveScanClients)
                 {
                     lock (client.MeshLock)
                     {

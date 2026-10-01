@@ -358,10 +358,8 @@ namespace LiveScanServer
 
         public unsafe void SetSendLatestMeshCallback()
         {
-
             sendLatestMeshCallback = new SendLatestMeshCallback((int clientIndex, int* indices, int indexCount) =>
             {
-                
                 if (indexCount <= 0 || indices == null)
                     return;
 
@@ -371,7 +369,7 @@ namespace LiveScanServer
                     for (int i = 0; i < indexCount; i++)
                         MeshIndices.Add(indices[i]);
 
-                    IsLatestMeshReceived = true;  // THIS IS REQUIRED
+                    IsLatestMeshReceived = true;
                 }
 
                 Logger.Log("Received latest mesh with " + indexCount + " indices from client " + clientIndex.ToString());
