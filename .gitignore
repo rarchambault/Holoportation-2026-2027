@@ -30,6 +30,9 @@ desktop.ini
 *.pdb
 *.cache
 *.tlog
+LiveScan3D/[Ll]og/
+LiveScan3D/[Bb]in/
+LiveScan3D/[Oo]bj/
 
 # Architecture-specific build outputs
 # Architecture-specific build outputs (anywhere in repo)
