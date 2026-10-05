@@ -84,10 +84,6 @@ namespace LiveScanServer
         // Position from each camera
         private List<AffineTransform> cameraPoses = new List<AffineTransform>();
 
-        // Button
-        private Button btPlaceCamera;
-
-
         public MainWindowForm()
         {
             // Tries to read the settings from "settings.bin". If it fails, the settings are set to default values.
@@ -112,28 +108,9 @@ namespace LiveScanServer
             transferServer.Vertices = vertices;
             transferServer.Colors = colors;
             transferServer.MeshIndices = meshIndices;
-
             transferServer.DocumentInfo = cameraServer.DocumentInfo;
 
             InitializeComponent();
-
-            // Make the window larger and resizable
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.Sizable;
-            this.ClientSize = new Size(500, 200);   
-            this.MinimumSize = new Size(300, 200);   
-
-
-            btPlaceCamera = new Button();
-            btPlaceCamera.Name = "btPlaceCamera";
-            btPlaceCamera.Text = "Place Camera";
-            btPlaceCamera.AutoSize = true;
-
-            btPlaceCamera.Left = btRefineCalib.Left;
-            btPlaceCamera.Top = btRefineCalib.Top + btRefineCalib.Height + 2;
-
-            btPlaceCamera.Click += OnPlaceCameraClick;
-            this.Controls.Add(btPlaceCamera);
 
             // Start the servers
             transferServer.StartPointCloudServer();
@@ -331,8 +308,6 @@ namespace LiveScanServer
                         var camColors = cameraColors[i];
                         var camMeshIndices = (i < cameraMeshIndices.Count) ? cameraMeshIndices[i] : null;
 
-                        //Logger.Log("Camera " + i.ToString() + ": " + (camVerts.Count / 3).ToString() + " vertices.");
-
                         vertices.AddRange(camVerts);
                         colors.AddRange(camColors);
 
@@ -528,20 +503,18 @@ namespace LiveScanServer
             isRecording = !isRecording;
         }
 
-        // First Implementation
         private void OnPlaceCameraClick(object sender, EventArgs e)
         {
             try
             {
-               
                 string exePath = Path.Combine(Application.StartupPath, "dist/Multi_camera.exe");
 
                 if (!File.Exists(exePath))
                 {
                     
-                    SetStatusBarOnTimer("Calibration.exe not found. Please place it next to the app or update the path.", 5000);
-                    MessageBox.Show("Calibration.exe not found.\n\nPlace it next to the application or update the hard-coded path in OnPlaceCameraClick.",
-                                    "Place Camera", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    SetStatusBarOnTimer("Calibration.exe not found.", 5000);
+                    MessageBox.Show("Calibration.exe not found.",
+                                    "Place cameras", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
@@ -553,7 +526,7 @@ namespace LiveScanServer
                 };
 
                 System.Diagnostics.Process.Start(psi);
-                SetStatusBarOnTimer("Launching Calibration.exe …", 3000);
+                SetStatusBarOnTimer("Launching Calibration.exe…", 3000);
             }
             catch (Exception ex)
             {
