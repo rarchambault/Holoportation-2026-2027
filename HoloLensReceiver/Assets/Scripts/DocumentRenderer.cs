@@ -12,13 +12,9 @@ This module renders document images on a plane renderer.
 
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using System.IO;
 
 public class DocumentRenderer : MonoBehaviour
 {
-    private int debugSaveCount = 0;
-    private RawImage DebugRawImage;
     public float MaxImageSize = 1.1f;  // 80 cm
     public float MinImageSize = 0.4f;  // 20 cm
     
@@ -99,8 +95,9 @@ public class DocumentRenderer : MonoBehaviour
 
         Debug.Log($"Received document with width {width} and height {height}, size {data.Length}");
 
-        byte[] correctedData = ImageCorrection(width, height, data);
+        byte[] correctedData = ProcessImage(width, height, data);
 
+        // Load the received image into a 2D Texture
         Texture2D texture = new Texture2D(
             width,
             height,
@@ -115,42 +112,16 @@ public class DocumentRenderer : MonoBehaviour
         texture.anisoLevel = 1;
         texture.Apply(false, false);
 
-        // Show on the 3D plane as before
+        // Show on the 3D plane
         TargetRenderer.material.mainTexture = texture;
         TargetRenderer.material.color = Color.white;
-        Debug.Log("Runtime material name: " + TargetRenderer.material.name);
-        Debug.Log("Runtime shader: " + TargetRenderer.material.shader.name);
         TargetRenderer.enabled = true;
-
-        // ALSO show directly in UI for comparison
-        if (DebugRawImage != null)
-        {
-            DebugRawImage.texture = texture;
-            DebugRawImage.color = Color.white;
-
-            // Keep aspect ratio
-            RectTransform rt = DebugRawImage.rectTransform;
-            float aspect = (float)width / height;
-            float maxWidth = 1000f;
-            float maxHeight = 700f;
-
-            float uiWidth = maxWidth;
-            float uiHeight = uiWidth / aspect;
-
-            if (uiHeight > maxHeight)
-            {
-                uiHeight = maxHeight;
-                uiWidth = uiHeight * aspect;
-            }
-
-            rt.sizeDelta = new Vector2(uiWidth, uiHeight);
-        }
 
         AdjustRendererScale(width, height);
         timeSinceLastRender = 0.0f;
     }
 
-    private byte[] ImageCorrection(int width, int height, byte[] src)
+    private byte[] ProcessImage(int width, int height, byte[] src)
     {
         byte[] dst = new byte[src.Length];
 

@@ -8,12 +8,15 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: PointCloudMaterial
-  m_Shader: {fileID: 4800000, guid: aa99776e038a82b41a6b409ad2022105, type: 3}
+  m_Shader: {fileID: 4800000, guid: 31bda2740d8b80e49973abacdf91c584, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords:
   - _ALPHABLEND_ON
+  - _COLOR_MAP_ENABLE_
+  - _EMISSION
+  - _PULSE_ENABLED__ON
   m_LightmapFlags: 0
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -25,6 +28,10 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Color_Map_:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -70,12 +77,17 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _Auto_Pulse_: 0
     - _BlendOp: 0
     - _BumpScale: 1
     - _CameraFadingEnabled: 0
     - _CameraFarFadeDistance: 2
     - _CameraNearFadeDistance: 1
     - _ColorMode: 0
+    - _Color_Center_: 0.4
+    - _Color_Leading_Fuzz_: 1
+    - _Color_Map_Enable_: 1
+    - _Color_Trailing_Fuzz_: 1
     - _Cull: 0
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
@@ -83,18 +95,36 @@ Material:
     - _DistortionEnabled: 0
     - _DistortionStrength: 1
     - _DistortionStrengthScaled: 0
+    - _Draw_End_Time_: 0.5
+    - _Draw_Fuzz_: 0.2
     - _DstBlend: 1
     - _EmissionEnabled: 0
+    - _Fill_Start_Time_: 0.5
+    - _Filter_Width_: 1.5
     - _FlipbookMode: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
+    - _Intensity_: 3
     - _LightingEnabled: 0
+    - _Line_Width_: 0.5
+    - _Line_Width_Fade_: 0.25
+    - _Line_Width_Fade_Far_: 5
     - _Metallic: 0
     - _Mode: 4
+    - _Noise_Frequency_: 40.5
     - _OcclusionStrength: 1
     - _Parallax: 0.02
+    - _Period_: 3.5
     - _PointSize: 0.002036978
+    - _Pulse_: 0
+    - _Pulse_Enabled_: 1
+    - _Pulse_Lead_Fuzz_: 1.2
+    - _Pulse_Middle_: 0
+    - _Pulse_Outer_Fuzz_: 1
+    - _Pulse_Outer_Size_: 10
+    - _Pulse_Tail_Fuzz_: 2.4
+    - _Pulse_Vary_: 0
     - _Size: 0.004
     - _SmoothnessTextureChannel: 0
     - _SoftParticlesEnabled: 0
@@ -103,6 +133,8 @@ Material:
     - _SpecularHighlights: 1
     - _SrcBlend: 5
     - _UVSec: 0
+    - _Vary_Color_: 0.75
+    - _Vary_UV_: 1
     - _ZWrite: 0
     - _pointSize: 0.005
     m_Colors:
@@ -110,8 +142,12 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _ColorAddSubDiff: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _Fill_Color_: {r: 0.004, g: 0.004, b: 0.004, a: 1}
     - _LeftEyeColor: {r: 0, g: 1, b: 0, a: 1}
+    - _Line_Color_: {r: 0.639, g: 0.639, b: 0.639, a: 1}
+    - _Pulse_Origin_: {r: 0, g: 0, b: 0, a: 1}
     - _RightEyeColor: {r: 1, g: 0, b: 0, a: 1}
     - _SoftParticleFadeParams: {r: 0, g: 0, b: 0, a: 0}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
