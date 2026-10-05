@@ -124,7 +124,7 @@ bool OrbbecCaptureManager::Initialize(SyncState state, int syncOffsetMultiplier)
         try {
             // Select the profile with the same frame rate as color and the specified parameters
             if (colorProfile) {
-                depthProfile = depthProfileList->getVideoStreamProfile(640, 576, OB_FORMAT_Y16, colorProfile->fps());
+                depthProfile = depthProfileList->getVideoStreamProfile(512, 512, OB_FORMAT_Y16, colorProfile->fps());
             }
         }
         catch (...) {

@@ -30,6 +30,9 @@ desktop.ini
 *.pdb
 *.cache
 *.tlog
+LiveScan3D/[Ll]og/
+LiveScan3D/[Bb]in/
+LiveScan3D/[Oo]bj/
 
 # Architecture-specific build outputs
 # Architecture-specific build outputs (anywhere in repo)
@@ -54,6 +57,16 @@ LiveScan3D/*.nupkg
 [Bb]uilds/
 [Ll]ogs/
 [Mm]emoryCaptures/
+[Oo]bj/
+[Uu]serSettings/
+[Ll]ibrary/
+[Tt]emp/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Oo]bj/
+[Uu]serSettings/
 
 # Unity auto-generated files
 *.pidb
@@ -63,6 +76,13 @@ LiveScan3D/*.nupkg
 *.mdb
 *.opendb
 *.VC.db
+
+# IDE-generated project files
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
 
 # Collab cache
 .collab/

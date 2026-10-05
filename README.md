@@ -2,21 +2,22 @@
 
 **By: Roxanne Archambault, Alex Turianskyj, Aleksej Dejanov, and Anh Tu Nguyen**
 
-This capstone project is an **open-source academic implementation** of real-time 3D point cloud reconstruction and transmission, inspired by Microsoft’s concept of “Holoportation.” The current repository is based on the following repository: https://github.com/alex8ndr/Holoportation, which was updated and moved here for further updates.
+This capstone project is an **open-source academic implementation** of real-time 3D point cloud and mesh reconstruction and transmission, inspired by Microsoft’s concept of “Holoportation.” The current repository is based on the following repository: https://github.com/alex8ndr/Holoportation, which was updated and moved here for further updates.
 
 ## Overview
 
-Holoportation is a system that enables real-time 3D point cloud capture, transmission, and rendering of everything within a defined zone surrounded by RGBD cameras. This project enhances astronaut training using augmented reality (AR) by transmitting real-time point cloud data to Microsoft HoloLens 2 headsets. The system processes depth and color data from multiple Orbbec Femto Bolt cameras, and transmits it in real-time, allowing trainers to include physical objects in remote training without prior modelling.
+Holoportation is a system that enables real-time 3D point cloud capture, mesh generation, transmission, and rendering of everything within a defined zone surrounded by RGBD cameras. This project enhances astronaut training using augmented reality (AR) by transmitting real-time reconstruction data to Microsoft HoloLens 2 headsets. The system processes depth and color data from multiple Orbbec Femto Bolt cameras, and transmits it in real-time, allowing trainers to include physical objects in remote training without prior modelling.
 
 ## Components
 - **LiveScan3D**
     - .NET console app in C# and C++
     - Performs the real-time point cloud reconstruction from the camera data
-    - Send the point cloud reconstruction in real time to connected clients (see HoloLensReceiver for more details)
+    - Generates a mesh from the point cloud data
+    - Sends the reconstruction in real time to connected clients (see HoloLensReceiver for more details)
 
 - **HoloLensReceiver**
     - Unity app in C# meant for HoloLens2
-    - Receives point cloud reconstructions and document detections and renders them
+    - Receives mesh reconstructions and document detections and renders them
 
 LiveScan3D and HoloLensReceiver are described in more detail below.
 
@@ -24,6 +25,7 @@ LiveScan3D and HoloLensReceiver are described in more detail below.
 
 ## Overview
 This project computes real time 3D reconstruction of objects using one or more Orbbec Femto Bolt RGBD camera(s) positioned around a zone called Holoport. These cameras provide both color and depth data which is then used to reconstruct any object positioned in the Holoport. The resulting 3D reconstruction is presented as a point cloud where each small point has a distinct color. Point clouds from all cameras are merged using a calibration object which, captured by each camera, allows them to transform their data from local to global space.
+Point cloud data is then converted to a mesh using the PCL library. This mesh is currently generated per camera rather than once for the merged point cloud data - upcoming work will focus on constructing one mesh to represent the entire object.
 
 This project is largely based on the following open-source project: https://github.com/MarekKowalski/LiveScan3D (see the associated research paper https://ieeexplore.ieee.org/document/7335499). The main changes to this project are related to adapting it to work with Orbbec Femto Bolt cameras and optimizing it for better performance.
 
@@ -63,7 +65,7 @@ Once the LiveScan3D applications have been built locally, they can be run direct
 There are two applications in the LiveScan3D project: `LiveScanServer.exe` and `LiveScanPlayer.exe`.
 
 ### LiveScanServer
-The `LiveScanServer.exe` application is the application used to retrieve data from any connected cameras in real time and merge it into one colored point cloud. Thus, testing it requires having one or more Orbbec Femto Bolt cameras connected to the computer.
+The `LiveScanServer.exe` application is the application used to retrieve data from any connected cameras in real time and merge it into one colored point cloud and mesh. Thus, testing it requires having one or more Orbbec Femto Bolt cameras connected to the computer.
 
 Here are the required steps to test this application:
 1. Execute the application by double-clicking on the `LiveScanServer.exe` file (or by right-clicking on the file and selecting `Open`).
@@ -77,6 +79,13 @@ Here are the required steps to test this application:
     * Verify that all connected cameras indicate "Calibrated = True" after a few seconds in the top left list box.
 6. Visualize the output of the reconstruction by selecting `Show live` at the center of the main UI form.
     * Verify that a new window appears where a point cloud reconstruction is displayed and updated as objects are moved within the Holoport.
+
+**NOTE:** A calibration tool has been developed by a previous team to help users position their cameras such that the calibration markers are clearly visible. 
+This tool would normally be launched by clicking the `Place cameras` button in the main LiveScan3D window. 
+However, this tool is currently implemented as a Python script which was exported to a very large .exe file embedding all requried dependencies, including Python itself. 
+Thus, the logic used to launch this tool as well as the original Python script were kept in this repository but the .exe file can be found under Releases for now.  
+Another important note concerning this tool is that it uses images of the calibration markers rather than the binary codes they represent to recognize them. 
+Full integration of this tool would require a major refactoring.
 
 ### LiveScanPlayer
 The `LiveScanPlayer.exe` application is used to play recordings of point clouds that have been captured using `LiveScanServer` beforehand. A test recording in `.ply` format is provided in this repository, under `LiveScanPlayer > TestRecording`.
@@ -95,9 +104,11 @@ Here are the required steps to test this application:
 6. Select `Show live` on the bottom left of the UI form to visualize the test recording.
     * Verify that a new window appears where a point cloud reconstruction is displayed and updated rapidly. 
 
+**NOTE:** `LiveScanPlayer` currently does not record mesh reconstructions, only the intermediate point cloud used to generate them.
+
 # HoloLens Receiver
 
-This project is a Unity application made for HoloLens2. Its main purpose is to receive point clouds from a LiveScan3D TCP server and render them on HoloLens2.
+This project is a Unity application made for HoloLens2. Its main purpose is to receive meshes from a LiveScan3D TCP server and render them on HoloLens2.
 
 This project is based on the following open-source project: https://github.com/MarekKowalski/LiveScan3D-Hololens, which itself was made to work with the following project: https://github.com/MarekKowalski/LiveScan3D (see the associated research paper https://ieeexplore.ieee.org/document/7335499). 
 
@@ -105,7 +116,7 @@ This project is based on the following open-source project: https://github.com/M
 
 ### Hardware Prerequisites
 * HoloLens2 headset
-* Unity version 2022.3.8f1 and Unity Hub (other versions may work but have not been tested)
+* Unity version 6000.0.62f1 and Unity Hub (other versions may work but have not been tested)
 * Windows computer running a LiveScan3D TCP server (this may also require other hardware components such as Orbbec Femto Bolt cameras, etc.
 
 ### Software Prerequisites
@@ -188,9 +199,9 @@ As mentioned above, there are two ways to test the HoloLensReceiver application;
 1. Ensure that the LiveScan3D server is running on the computer which was designated as the server (the IP address entered above in the `HoloportController` component).
 2. Click on the Play button at the top of the Unity Editor window to launch the application.
     * Verify that the point cloud which is displayed in the LiveScan3D application is now also displayed in the `Game` window of the Unity Editor.
-    * The W, A, S, D, Q, E keys can be used to move the camera around the point cloud. The R key also toggles the ability of the mouse to control the camera rotation.
+    * The W, A, S, D, Q, E keys can be used to move the camera around the reconstruction. The R key also toggles the ability of the mouse to control the camera rotation.
 
 ### HoloLens
 1. Ensure that the LiveScan3D server is running on the computer which was designated as the server (the IP address entered above in the `HoloportController` component).
 2. Put on the HoloLens and launch the `HoloLensReceiver` application through the HoloLens' applications menu.
-    * Verify that the point cloud which is displayed in the LiveScan3D application is now also displayed in the `Game` window of the Unity Editor (the point cloud should appear 1 meter in front of the position of your head upon launching the application).
+    * Verify that the point cloud which is displayed in the LiveScan3D application ressembles the mesh reconstruction which is now also displayed in the `Game` window of the Unity Editor (the reconstruction should appear 1 meter in front of the position of your head upon launching the application).

@@ -15,8 +15,9 @@ using UnityEngine;
 
 public class DocumentRenderer : MonoBehaviour
 {
-    public float MaxImageSize = 3.0f;
-    public float MinImageSize = 2.0f;
+    public float MaxImageSize = 1.1f;  // 80 cm
+    public float MinImageSize = 0.4f;  // 20 cm
+    
     public Renderer TargetRenderer;
 
     private const float ImageTimeout = 30.0f;
@@ -86,31 +87,63 @@ public class DocumentRenderer : MonoBehaviour
 
     public void UpdateMesh(short width, short height, byte[] data)
     {
-        if (data == null || data.Length == 0)
+        if (data == null || data.Length != width * height * 3)
         {
+            Debug.LogWarning($"Invalid document data. width={width}, height={height}, bytes={(data == null ? 0 : data.Length)}");
             return;
         }
 
+        Debug.Log($"Received document with width {width} and height {height}, size {data.Length}");
+
+        byte[] correctedData = ProcessImage(width, height, data);
+
         // Load the received image into a 2D Texture
-        Texture2D texture = new Texture2D(2, 2, TextureFormat.RGB24, false, true);
+        Texture2D texture = new Texture2D(
+            width,
+            height,
+            TextureFormat.RGB24,
+            mipChain: false,
+            linear: false
+        );
 
-        if (texture.LoadImage(data))
+        texture.LoadRawTextureData(correctedData);
+        texture.filterMode = FilterMode.Point;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.anisoLevel = 1;
+        texture.Apply(false, false);
+
+        // Show on the 3D plane
+        TargetRenderer.material.mainTexture = texture;
+        TargetRenderer.material.color = Color.white;
+        TargetRenderer.enabled = true;
+
+        AdjustRendererScale(width, height);
+        timeSinceLastRender = 0.0f;
+    }
+
+    private byte[] ProcessImage(int width, int height, byte[] src)
+    {
+        byte[] dst = new byte[src.Length];
+
+        for (int y = 0; y < height; y++)
         {
-            texture.Apply();
+            for (int x = 0; x < width; x++)
+            {
+                int srcIndex = (y * width + x) * 3;
 
-            // Apply the texture on the renderer
-            TargetRenderer.material.mainTexture = texture;
-            TargetRenderer.enabled = true;
+                // Vertical flip only
+                int dstX = x;
+                int dstY = height - 1 - y;
+                int dstIndex = (dstY * width + dstX) * 3;
 
-            // Scale the renderer to match the aspect ratio
-            AdjustRendererScale(width, height);
-
-            timeSinceLastRender = 0.0f;
+                // BGR -> RGB
+                dst[dstIndex + 0] = src[srcIndex + 2]; // R
+                dst[dstIndex + 1] = src[srcIndex + 1]; // G
+                dst[dstIndex + 2] = src[srcIndex + 0]; // B
+            }
         }
-        else
-        {
-            Debug.LogError("Failed to load image data into texture");
-        }
+
+        return dst;
     }
 
     private void AdjustRendererScale(short width, short height)

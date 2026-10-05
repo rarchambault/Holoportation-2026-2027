@@ -12,6 +12,7 @@
         private System.ComponentModel.BackgroundWorker recordingWorker;
         private System.Windows.Forms.TextBox txtSeqName;
         private System.Windows.Forms.Button btRefineCalib;
+        private System.Windows.Forms.Button btPlaceCameras;
         private System.ComponentModel.BackgroundWorker OpenGLWorker;
         private System.ComponentModel.BackgroundWorker savingWorker;
         private System.ComponentModel.BackgroundWorker updateWorker;
@@ -50,6 +51,7 @@
             this.recordingWorker = new System.ComponentModel.BackgroundWorker();
             this.txtSeqName = new System.Windows.Forms.TextBox();
             this.btRefineCalib = new System.Windows.Forms.Button();
+            this.btPlaceCameras = new System.Windows.Forms.Button();
             this.OpenGLWorker = new System.ComponentModel.BackgroundWorker();
             this.savingWorker = new System.ComponentModel.BackgroundWorker();
             this.updateWorker = new System.ComponentModel.BackgroundWorker();
@@ -129,6 +131,16 @@
             this.btRefineCalib.Text = "Refine calib";
             this.btRefineCalib.UseVisualStyleBackColor = true;
             this.btRefineCalib.Click += new System.EventHandler(this.OnRefineCalibrationButtonClick);
+            //
+            // btPlaceCamera
+            //
+            this.btPlaceCameras.Location = new System.Drawing.Point(10, 127);
+            this.btPlaceCameras.Name = "btPlaceCameras";
+            this.btPlaceCameras.Size = new System.Drawing.Size(95, 23);
+            this.btPlaceCameras.TabIndex = 11;
+            this.btPlaceCameras.Text = "Place cameras";
+            this.btPlaceCameras.UseVisualStyleBackColor = true;
+            this.btPlaceCameras.Click += new System.EventHandler(this.OnPlaceCameraClick);
             // 
             // OpenGLWorker
             // 
@@ -184,17 +196,20 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(445, 157);
+            this.ClientSize = new System.Drawing.Size(500, 200);
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.MinimumSize = new System.Drawing.Size(300, 200);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Controls.Add(this.lbSeqName);
             this.Controls.Add(this.btSettings);
             this.Controls.Add(this.btShowLive);
+            this.Controls.Add(this.btPlaceCameras);
             this.Controls.Add(this.btRefineCalib);
             this.Controls.Add(this.txtSeqName);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.lClientListBox);
             this.Controls.Add(this.btRecord);
             this.Controls.Add(this.btCalibrate);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Name = "MainWindowForm";
             this.Text = "LiveScanServer";
@@ -203,7 +218,6 @@
             this.statusStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
-
         }
 
         #endregion

@@ -19,6 +19,7 @@ Kowalski, M.; Naruniec, J.; Daniluk, M.: "LiveScan3D: A Fast and Inexpensive
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace LiveScanServer
@@ -178,6 +179,7 @@ namespace LiveScanServer
                 client.SetConfirmRecordedCallback();
                 client.SetConfirmCalibratedCallback(OnConfirmCalibrated);
                 client.SetSendLatestFrameCallback();
+                client.SetSendLatestMeshCallback();
                 client.SetSendRecordedFrameCallback();
                 client.SetConfirmSyncStateCallback(OnConfirmSyncState);
                 client.SetConfirmMasterRestartCallback(OnConfirmMasterRestart);
@@ -464,6 +466,81 @@ namespace LiveScanServer
                 foreach (var client in liveScanClients)
                 {
                     client.ClearRecordedFrames();
+                }
+            }
+        }
+
+        public void GetMeshIndices(ref List<List<int>> perCamIndices)
+        {
+            // Make sure the output list exists
+            if (perCamIndices == null)
+                perCamIndices = new List<List<int>>();
+
+            perCamIndices.Clear();
+
+            lock (clientLock)
+            {
+                // Reset mesh flags and send requests
+                foreach (var client in liveScanClients)
+                {
+                    client.IsLatestMeshReceived = false;
+                }
+
+                for (int i = 0; i < liveScanClients.Count; i++)
+                {
+                    var client = liveScanClients[i];
+                    Logger.Log($"Requesting latest mesh from client #{i}");
+                    client.RequestLatestMesh();
+                }
+            }
+
+            // Wait for responses with timeout
+            bool allGathered = false;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            const int TIMEOUT_MS = 50;
+
+            while (!allGathered)
+            {
+                lock (clientLock)
+                {
+                    foreach (var client in liveScanClients)
+                    {
+                        if (!client.IsLatestMeshReceived)
+                        {
+                            allGathered = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (allGathered)
+                    break;
+
+                if (sw.ElapsedMilliseconds > TIMEOUT_MS)
+                {
+                    Logger.Log("[WARN] GetMeshIndices timeout — using partial meshes");
+                    break;
+                }
+
+                Thread.Sleep(1);
+            }
+
+            // Copy meshes out
+            lock (clientLock)
+            {
+                foreach (var client in liveScanClients)
+                {
+                    lock (client.MeshLock)
+                    {
+                        if (client.MeshIndices != null)
+                        {
+                            perCamIndices.Add(new List<int>(client.MeshIndices));
+                        }
+                        else
+                        {
+                            perCamIndices.Add(new List<int>());
+                        }
+                    }
                 }
             }
         }

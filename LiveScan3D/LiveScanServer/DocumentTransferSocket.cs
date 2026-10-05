@@ -29,38 +29,7 @@ namespace LiveScanServer
     {
         public DocumentTransferSocket(TcpClient clientSocket) : base(clientSocket) { }
 
-        public void SendDocument(List<byte> data, short width, short height)
-        {
-            try
-            {
-                if (data == null || data.Count == 0 || width == 0 || height == 0)
-                {
-                    return;
-                }
-
-                // Encode document data
-                byte[] dataArray = EncodeToJpeg(data.ToArray(), width, height);
-
-                if (dataArray == null || dataArray.Length == 0)
-                {
-                    return;
-                }
-
-                // Send width and height of document first
-                WriteShort(width);
-                WriteShort(height);
-
-                // Write data size
-                WriteInt(dataArray.Length);
-
-                // Write actual data
-                socket.GetStream().Write(dataArray, 0, dataArray.Length);
-            }
-            catch (Exception)
-            {
-            }
-        }
-
+        // Not currently used
         public static byte[] EncodeToJpeg(byte[] rawBgr, int width, int height, int quality = 90)
         {
             if (rawBgr == null || rawBgr.Length != width * height * 3 || width <= 0 || height <= 0)
@@ -114,6 +83,34 @@ namespace LiveScanServer
 
                     return ms.ToArray();
                 }
+            }
+        }
+
+        public void SendDocument(List<byte> data, short width, short height)
+        {
+            try
+            {
+                if (data == null || data.Count == 0 || width == 0 || height == 0)
+                    return;
+
+                byte[] dataArray = data.ToArray();
+
+                // Sanity check
+                if (dataArray.Length != width * height * 3)
+                    return;
+
+                // Send dimensions
+                WriteShort(width);
+                WriteShort(height);
+
+                // Send raw byte size
+                WriteInt(dataArray.Length);
+
+                // Send raw pixel data
+                socket.GetStream().Write(dataArray, 0, dataArray.Length);
+            }
+            catch (Exception)
+            {
             }
         }
     }

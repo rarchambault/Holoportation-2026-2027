@@ -26,6 +26,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace LiveScanServer
 {
@@ -68,6 +69,9 @@ namespace LiveScanServer
         // Recorded frame vertices from each camera, separated in lists
         private List<List<float>> cameraRecordedVertices = new List<List<float>>();
 
+        private List<int> meshIndices = new List<int>();
+        private List<List<int>> cameraMeshIndices = new List<List<int>>();
+
         // Color data from all of the cameras
         private List<byte> colors = new List<byte>();
 
@@ -103,7 +107,7 @@ namespace LiveScanServer
             // Set the transfer server to point to the same vertices and colors lists to avoid copying large arrays in memory
             transferServer.Vertices = vertices;
             transferServer.Colors = colors;
-
+            transferServer.MeshIndices = meshIndices;
             transferServer.DocumentInfo = cameraServer.DocumentInfo;
 
             InitializeComponent();
@@ -283,6 +287,7 @@ namespace LiveScanServer
                 lock (cameraVertices)
                 {
                     cameraServer.GetLatestFrame(ref cameraColors, ref cameraVertices);
+                    cameraServer.GetMeshIndices(ref cameraMeshIndices);
                 }
 
                 // Update the local lists representing the latest frame
@@ -291,12 +296,43 @@ namespace LiveScanServer
                     vertices.Clear();
                     colors.Clear();
                     cameraPoses.Clear();
+                    meshIndices.Clear();
+
 
                     // Add vertices and colors from each camera to the encompassing list
+                    int vertexOffset = 0;
+
                     for (int i = 0; i < cameraColors.Count; i++)
                     {
-                        vertices.AddRange(cameraVertices[i]);
-                        colors.AddRange(cameraColors[i]);
+                        var camVerts = cameraVertices[i];
+                        var camColors = cameraColors[i];
+                        var camMeshIndices = (i < cameraMeshIndices.Count) ? cameraMeshIndices[i] : null;
+
+                        vertices.AddRange(camVerts);
+                        colors.AddRange(camColors);
+
+                        int camVertexCount = camVerts.Count / 3;
+
+                        if (camMeshIndices != null)
+                        {
+                            // Guard against stale mesh indices from a different frame than the vertices.
+                            // This can occur when GetLatestFrame and GetMeshIndices read from different
+                            // C++ frames due to a race with the processing thread (frame N verts, frame N+1 indices).
+                            for (int t = 0; t + 2 < camMeshIndices.Count; t += 3)
+                            {
+                                int a = camMeshIndices[t];
+                                int b = camMeshIndices[t + 1];
+                                int c = camMeshIndices[t + 2];
+                                if (a < camVertexCount && b < camVertexCount && c < camVertexCount)
+                                {
+                                    meshIndices.Add(a + vertexOffset);
+                                    meshIndices.Add(b + vertexOffset);
+                                    meshIndices.Add(c + vertexOffset);
+                                }
+                            }
+                        }
+
+                        vertexOffset += camVertexCount;
                     }
 
                     cameraPoses.AddRange(cameraServer.CameraPoses);
@@ -466,6 +502,39 @@ namespace LiveScanServer
 
             isRecording = !isRecording;
         }
+
+        private void OnPlaceCameraClick(object sender, EventArgs e)
+        {
+            try
+            {
+                string exePath = Path.Combine(Application.StartupPath, "dist/Multi_camera.exe");
+
+                if (!File.Exists(exePath))
+                {
+                    
+                    SetStatusBarOnTimer("Calibration.exe not found.", 5000);
+                    MessageBox.Show("Calibration.exe not found.",
+                                    "Place cameras", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = exePath,
+                    WorkingDirectory = Path.GetDirectoryName(exePath),
+                    UseShellExecute = true 
+                };
+
+                System.Diagnostics.Process.Start(psi);
+                SetStatusBarOnTimer("Launching Calibration.exe…", 3000);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to launch Calibration.exe:\n\n" + ex.Message, "Place Camera",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
 
         private void OnCalibrateButtonClick(object sender, EventArgs e)
         {
