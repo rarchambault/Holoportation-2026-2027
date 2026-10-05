@@ -58,6 +58,12 @@
   <ItemGroup>
     <Image Include="app.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="document_yolov8seg.onnx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <FileType>Document</FileType>
+    </CopyFileToFolders>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9B550BBA-EAFB-4D12-8B1C-8FDA39361F52}</ProjectGuid>
     <RootNamespace>KinectClient</RootNamespace>
@@ -218,5 +224,32 @@ flann_cpp_s.lib;flann_s.lib;onnxruntime.lib;
     <!-- Copy the DLLs to output directory -->
     <Copy SourceFiles="@(OpenCVDLLs)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
     <Message Text="OpenCV DLLs successfully copied to output directory" Importance="high" />
+  </Target>
+  <Target Name="CopyPCLDLLs" AfterTargets="CopyFilesToOutputDirectory">
+    <!-- Define the files to copy -->
+    <ItemGroup>
+      <PCLDLLs Include="$(SolutionDir)lib\pcl\**\*.dll" />
+    </ItemGroup>
+    <!-- Copy the DLLs to output directory -->
+    <Copy SourceFiles="@(PCLDLLs)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Message Text="PCL DLLs successfully copied to output directory" Importance="high" />
+  </Target>
+  <Target Name="CopyONNXRuntimeDLLs" AfterTargets="CopyFilesToOutputDirectory">
+    <!-- Define the files to copy -->
+    <ItemGroup>
+      <ONNXRuntimeDLLs Include="$(SolutionDir)lib\ONNXRuntime\*.dll" />
+    </ItemGroup>
+    <!-- Copy the DLLs to output directory -->
+    <Copy SourceFiles="@(ONNXRuntimeDLLs)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Message Text="ONNXRuntime DLLs successfully copied to output directory" Importance="high" />
+  </Target>
+  <Target Name="CopyFlannDLLs" AfterTargets="CopyFilesToOutputDirectory">
+    <!-- Define the files to copy -->
+    <ItemGroup>
+      <FlannDLLs Include="$(SolutionDir)lib\flann\*.dll" />
+    </ItemGroup>
+    <!-- Copy the DLLs to output directory -->
+    <Copy SourceFiles="@(FlannDLLs)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Message Text="Flann DLLs successfully copied to output directory" Importance="high" />
   </Target>
 </Project>
