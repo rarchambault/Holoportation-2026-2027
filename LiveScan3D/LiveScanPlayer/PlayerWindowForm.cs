@@ -91,14 +91,14 @@ namespace LiveScanPlayer
 
             if (isPlayerRunning)
             {
-                transferServer.StartPointCloudServer();
+                transferServer.StartMeshServer();
                 transferServer.StartDocumentServer();
                 updateWorker.RunWorkerAsync();
                 btStart.Text = "Stop player";
             }
             else
             {
-                transferServer.StopPointCloudServer();
+                transferServer.StopMeshServer();
                 transferServer.StopDocumentServer();
                 btStart.Text = "Start player";
                 onPlayFramesFinished.WaitOne();
@@ -163,7 +163,7 @@ namespace LiveScanPlayer
         private void CloseForm(object sender, FormClosingEventArgs e)
         {
             isPlayerRunning = false;
-            transferServer.StopPointCloudServer();
+            transferServer.StopMeshServer();
             transferServer.StopDocumentServer();
         }
 

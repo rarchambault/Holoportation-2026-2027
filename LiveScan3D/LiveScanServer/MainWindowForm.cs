@@ -26,7 +26,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Windows.Forms;
-using System.Drawing;
 
 namespace LiveScanServer
 {
@@ -113,7 +112,7 @@ namespace LiveScanServer
             InitializeComponent();
 
             // Start the servers
-            transferServer.StartPointCloudServer();
+            transferServer.StartMeshServer();
             transferServer.StartDocumentServer();
 
             // Find the number of connected cameras
@@ -135,7 +134,7 @@ namespace LiveScanServer
 
             // Stop servers
             cameraServer.StopServer();
-            transferServer.StopPointCloudServer();
+            transferServer.StopMeshServer();
             transferServer.StopDocumentServer();
         }
 

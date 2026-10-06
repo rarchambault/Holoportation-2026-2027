@@ -80,7 +80,7 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="TransferServer.cs" />
-    <Compile Include="PointCloudTransferSocket.cs" />
+    <Compile Include="MeshTransferSocket.cs" />
     <Compile Include="Utils.cs" />
     <EmbeddedResource Include="MainWindowForm.resx">
       <DependentUpon>MainWindowForm.cs</DependentUpon>
