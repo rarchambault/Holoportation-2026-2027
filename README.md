@@ -137,8 +137,8 @@ The project is now ready to be tested in the Unity Editor! Move to the Usage sec
 
 **To build and deploy the project on HoloLens2**, a few additional steps are required. Note that these steps explain how to deploy the application to HoloLens by creating an app package; other methods such as network deployment will also work.
 
-7. In the Unity Editor, navigate to `File > Build Settings...`.
-    * Verify that the `Build Settings` window opens.
+7. In the Unity Editor, navigate to `File > Build Profiles`.
+    * Verify that the `Build Profiles` window opens.
 8. Verify and adjust the build settings to reflect the following configuration. Note that you may need to switch the build platform before you can actually build the application.
     
     <table>
@@ -175,6 +175,9 @@ The project is now ready to be tested in the Unity Editor! Move to the Usage sec
 
 12. Right click on the `HoloLensReceiver (Universal Windows)` project and select `Publish > Create App Packages...`.
     * Verify that the `Create App Packages` window opens.
+	
+        > !Note: If prompted to enter a password for the certificate, enter "password". If this does not work, you may need to manually import the certificate by double-clicking on the certificate file under `HoloLensReceiver/Assets/WSATestCertificate.pfx`.
+
 13. In the `Select distribution method` page (the first one), click on `Next`.
 14. In the `Select signing method` page, click on `Next` again.
 15. In the `Select and configure packages` page, note the Output location path; this is where the app package will be output. Uncheck the `Automatically increment` checkbox under the version number. Ensure that the only Architecture / Solution Configuration combination which is checked to be created is the following:
@@ -183,13 +186,15 @@ The project is now ready to be tested in the Unity Editor! Move to the Usage sec
     |--------------|------------------------|
     | ARM          | Release (ARM)          |
 
-16. Click on `Create` to launch the app package creation.
-    * Verify that the app package is created in the Output location path provided.
-17. Open the HoloLens Device Portal by entering the device's IP address in a web browser.
-18. Navigate to `Views > Apps` from the left menu.
-19. Under `Deploy apps`, in the `Local Storage` menu, click on `Choose File` and browse to the path where the app package was created.
-20. Select the app package which was just created (it should be called `HoloLensReceiver_<version>_ARM.appx`) and click on `Open`.
-21. Click on `Install` to begin the installation.
+16. Click on `Next`.
+17. In the `Configure update settings`, under `Installer location`, enter `<path_to_build_folder>/AppPackages/HoloLensReceiver`.
+18. Click on `Create` to launch the app package creation.
+    * Verify that the app package is created in the Installation location path provided.
+19. Open the HoloLens Device Portal by entering the device's IP address in a web browser.
+20. Navigate to `Views > Apps` from the left menu.
+21. Under `Deploy apps`, in the `Local Storage` menu, click on `Choose File` and browse to the path where the app package was created (it should be under `<path_to_build_folder>/AppPackages/HoloLensReceiver/HoloLensReceiver_<version>_ARM_Test`).
+22. Select the app package which was just created (it should be called `HoloLensReceiver_<version>_ARM.msix`) and click on `Open`.
+23. Click on `Install` to begin the installation.
     * Verify that the package is successfully installed after a few seconds (the following message should be displayed above the status bar: "Package Successfully Registered").
 
 ## Usage
