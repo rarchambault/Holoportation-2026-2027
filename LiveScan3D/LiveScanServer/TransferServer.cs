@@ -7,7 +7,7 @@ Copyright (c) Canadian Space Agency.
 
 <Description>
 This module is the server used to listen for client connections through TCP
-and to send them point cloud data at a high frequency
+and to send them mesh data at a high frequency
 
 This code was adapted from the following research: 
 Kowalski, M.; Naruniec, J.; Daniluk, M.: "LiveScan3D: A Fast and Inexpensive 
@@ -19,8 +19,8 @@ Kowalski, M.; Naruniec, J.; Daniluk, M.: "LiveScan3D: A Fast and Inexpensive
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace LiveScanServer
 {
@@ -31,16 +31,16 @@ namespace LiveScanServer
         public List<int> MeshIndices = new List<int>();
         public DocumentInfo DocumentInfo = new DocumentInfo();
 
-        private const int PointCloudPort = 48002;
+        private const int MeshPort = 48002;
         private const int DocumentPort = 48003;
         private const int CheckConnectionInterval = 1000;
 
-        private TcpListener pointCloudListener;
-        private System.Timers.Timer pointCloudConnectionTimer;
-        private CancellationTokenSource pointCloudCancellationTokenSource;
-        private List<PointCloudTransferSocket> pointCloudClients = new List<PointCloudTransferSocket>();
-        private object pointCloudClientLock = new object();
-        private bool isPointCloudServerRunning = false;
+        private TcpListener meshListener;
+        private System.Timers.Timer meshConnectionTimer;
+        private CancellationTokenSource meshCancellationTokenSource;
+        private List<MeshTransferSocket> meshClients = new List<MeshTransferSocket>();
+        private object meshClientLock = new object();
+        private bool isMeshServerRunning = false;
 
         private TcpListener documentListener;
         private System.Timers.Timer documentConnectionTimer;
@@ -51,48 +51,48 @@ namespace LiveScanServer
 
         ~TransferServer()
         {
-            StopPointCloudServer();
+            StopMeshServer();
             StopDocumentServer();
         }
 
         /// <summary>
-        /// Starts the TCP listener and Tasks for the point cloud server to listen for client connections and send them data
+        /// Starts the TCP listener and Tasks for the mesh server to listen for client connections and send them data
         /// </summary>
-        public void StartPointCloudServer()
+        public void StartMeshServer()
         {
-            if (!isPointCloudServerRunning)
+            if (!isMeshServerRunning)
             {
                 // Start TCP listener server
-                pointCloudListener = new TcpListener(IPAddress.Any, PointCloudPort);
-                pointCloudListener.Start();
+                meshListener = new TcpListener(IPAddress.Any, MeshPort);
+                meshListener.Start();
 
-                isPointCloudServerRunning = true;
+                isMeshServerRunning = true;
 
                 // Start tasks to listen for client connections and send data
-                pointCloudCancellationTokenSource = new CancellationTokenSource();
-                Task.Run(() => ConnectPointCloudClients(pointCloudCancellationTokenSource.Token));
-                Task.Run(() => SendPointCloudToAllClients(pointCloudCancellationTokenSource.Token));
+                meshCancellationTokenSource = new CancellationTokenSource();
+                Task.Run(() => ConnectMeshClients(meshCancellationTokenSource.Token));
+                Task.Run(() => SendMeshToAllClients(meshCancellationTokenSource.Token));
 
                 // Start a timer to ping connected clients at a regular interval to ensure they are still connected
-                pointCloudConnectionTimer = new System.Timers.Timer();
-                pointCloudConnectionTimer.Interval = CheckConnectionInterval;
+                meshConnectionTimer = new System.Timers.Timer();
+                meshConnectionTimer.Interval = CheckConnectionInterval;
 
-                pointCloudConnectionTimer.Elapsed += delegate (object sender, System.Timers.ElapsedEventArgs e)
+                meshConnectionTimer.Elapsed += delegate (object sender, System.Timers.ElapsedEventArgs e)
                 {
-                    lock (pointCloudClientLock)
+                    lock (meshClientLock)
                     {
-                        for (int i = 0; i < pointCloudClients.Count; i++)
+                        for (int i = 0; i < meshClients.Count; i++)
                         {
-                            if (!pointCloudClients[i].IsConnected())
+                            if (!meshClients[i].IsConnected())
                             {
-                                pointCloudClients.RemoveAt(i);
+                                meshClients.RemoveAt(i);
                                 i--;
                             }
                         }
                     }
                 };
 
-                pointCloudConnectionTimer.Start();
+                meshConnectionTimer.Start();
             }
         }
 
@@ -138,31 +138,31 @@ namespace LiveScanServer
         }
 
         /// <summary>
-        /// Stops the point cloud server and all associated threads and connections
+        /// Stops the mesh server and all associated threads and connections
         /// </summary>
-        public void StopPointCloudServer()
+        public void StopMeshServer()
         {
-            if (isPointCloudServerRunning)
+            if (isMeshServerRunning)
             {
-                isPointCloudServerRunning = false;
+                isMeshServerRunning = false;
 
                 // Stop checking client connections
-                pointCloudConnectionTimer.Stop();
+                meshConnectionTimer.Stop();
 
                 // Explicitly stop Tasks
-                pointCloudCancellationTokenSource.Cancel();
+                meshCancellationTokenSource.Cancel();
 
                 // Stop each client socket and its threads
-                foreach (PointCloudTransferSocket clientSocket in pointCloudClients)
+                foreach (MeshTransferSocket clientSocket in meshClients)
                 {
                     clientSocket.Stop();
                 }
 
                 // Stop the listener server
-                pointCloudListener.Stop();
+                meshListener.Stop();
 
-                lock (pointCloudClientLock)
-                    pointCloudClients.Clear();
+                lock (meshClientLock)
+                    meshClients.Clear();
             }
         }
 
@@ -196,23 +196,23 @@ namespace LiveScanServer
         }
 
         /// <summary>
-        /// Listens for point cloud client connections in a loop
+        /// Listens for mesh client connections in a loop
         /// </summary>
         /// <param name="token">Cancellation token to stop the task</param>
         /// <returns>Task representing the listener</returns>
-        private async Task ConnectPointCloudClients(CancellationToken token)
+        private async Task ConnectMeshClients(CancellationToken token)
         {
-            while (isPointCloudServerRunning && !token.IsCancellationRequested)
+            while (isMeshServerRunning && !token.IsCancellationRequested)
             {
                 try
                 {
                     // Try to accept a new client
-                    TcpClient newClient = pointCloudListener.AcceptTcpClient();
+                    TcpClient newClient = meshListener.AcceptTcpClient();
 
                     // Add the new client to the list
-                    lock (pointCloudClientLock)
+                    lock (meshClientLock)
                     {
-                        pointCloudClients.Add(new PointCloudTransferSocket(newClient));
+                        meshClients.Add(new MeshTransferSocket(newClient));
                     }
                 }
                 catch (SocketException)
@@ -252,21 +252,21 @@ namespace LiveScanServer
         }
 
         /// <summary>
-        /// Sends point cloud data to all connected clients at regular intervals
+        /// Sends mesh data to all connected clients at regular intervals
         /// </summary>
         /// <param name="token">Cancellation token to stop the Task</param>
         /// <returns>Task representing the sender</returns>
-        private async Task SendPointCloudToAllClients(CancellationToken token)
+        private async Task SendMeshToAllClients(CancellationToken token)
         {
-            while (isPointCloudServerRunning && !token.IsCancellationRequested)
+            while (isMeshServerRunning && !token.IsCancellationRequested)
             {
-                // Send latest point cloud to all connected clients
-                for (int i = 0; i < pointCloudClients.Count; i++)
+                // Send latest mesh to all connected clients
+                for (int i = 0; i < meshClients.Count; i++)
                 {
-                    // Send a point cloud frame
+                    // Send a mesh frame
                     lock (Vertices)
                     {
-                        pointCloudClients[i].SendPointCloud(Vertices, Colors, MeshIndices);
+                        meshClients[i].SendMesh(Vertices, Colors, MeshIndices);
                     }
                 }
 

@@ -7,7 +7,7 @@ Copyright (c) Canadian Space Agency.
 
 <Description>
 This module represents all settings which can be changed by the user to modify
-camera data capturing and the point cloud reconstruction in general.
+camera data capturing and the point cloud and mesh reconstruction in general.
 
 This code was adapted from the following research: 
 Kowalski, M.; Naruniec, J.; Daniluk, M.: "LiveScan3D: A Fast and Inexpensive 
